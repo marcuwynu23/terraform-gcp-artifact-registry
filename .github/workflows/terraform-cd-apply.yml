@@ -1,0 +1,84 @@
+name: CD - GCP Artifact Registry (Apply)
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      project_id:
+        description: GCP project ID
+        required: true
+        type: string
+
+      region:
+        description: "GCP region (Free Tier: us-west1, us-central1, us-east1)"
+        required: true
+        type: string
+        default: us-central1
+
+      repository_id:
+        description: repository id
+        required: true
+        type: string
+
+      description:
+        description: description
+        required: true
+        type: string
+
+      reader_members:
+        description: reader members
+        required: true
+        type: string
+
+      writer_members:
+        description: writer members
+        required: true
+        type: string
+
+env:
+  TF_BUCKET_NAME: ${{ secrets.TF_BUCKET_NAME }}
+  TF_BUCKET_PREFIX: ${{ secrets.TF_BUCKET_PREFIX }}
+jobs:
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: latest
+    - name: Ensure GCS State Bucket Exists
+      run: |
+        gcloud storage buckets describe gs://$TF_BUCKET_NAME --format="json" 2>/dev/null || \
+        gcloud storage buckets create gs://$TF_BUCKET_NAME \
+          --location=${{ github.event.inputs.region }} \
+          --uniform-bucket-level-access
+    - name: Terraform Init
+      run: |
+        terraform init \
+          -backend-config="bucket=$TF_BUCKET_NAME" \
+          -backend-config="prefix=$TF_BUCKET_PREFIX"
+    - name: Terraform Plan
+      run: |
+        terraform plan  \
+          -var="project_id=${{ github.event.inputs.project_id }}" \
+          -var="region=${{ github.event.inputs.region }}" \
+          -var="repository_id=${{ github.event.inputs.repository_id }}" \
+          -var="description=${{ github.event.inputs.description }}" \
+          -var="reader_members=${{ github.event.inputs.reader_members }}" \
+          -var="writer_members=${{ github.event.inputs.writer_members }}"
+    - name: Terraform Apply
+      run: |
+        terraform apply -auto-approve  \
+          -var="project_id=${{ github.event.inputs.project_id }}" \
+          -var="region=${{ github.event.inputs.region }}" \
+          -var="repository_id=${{ github.event.inputs.repository_id }}" \
+          -var="description=${{ github.event.inputs.description }}" \
+          -var="reader_members=${{ github.event.inputs.reader_members }}" \
+          -var="writer_members=${{ github.event.inputs.writer_members }}"
