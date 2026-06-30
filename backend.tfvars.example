@@ -1,0 +1,7 @@
+# Create a bucket first:
+#   gcloud storage buckets create gs://your-terraform-state-bucket --location=us-central1 --uniform-bucket-level-access
+#
+# Then use with: terraform init -backend-config="backend.tfvars"
+
+bucket_name   = "[username]-terraform-state-bucket"
+bucket_prefix = "gcp-artifact-registry"
