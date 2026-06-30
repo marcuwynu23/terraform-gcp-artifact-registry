@@ -4,4 +4,4 @@
 # Then use with: terraform init -backend-config="backend.tfvars"
 
 bucket_name   = "[username]-terraform-state-bucket"
-bucket_prefix = "gcp-artifact-registry"
+bucket_prefix = "terraform-gcp-artifact-registry"
